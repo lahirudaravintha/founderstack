@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum Role {
+  owner
+  admin
+  member
+  viewer
+}
+
+enum ModulePermission {
+  read
+  write
+}
+
+enum ContributionCategory {
+  cash
+  equipment
+  services
+  intellectual_property
+  real_estate
+  other
+}
+
+enum TransactionType {
+  capital_contribution
+  expense
+  revenue
+  reimbursement
+}
+
+enum ReceiptStatus {
+  uploaded
+  processing
+  reviewed
+  confirmed
+  failed
+}
+
+enum ExpenseStatus {
+  pending
+  approved
+  rejected
+  reimbursed
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  expired
+}
+
+// ─── Models ─────────────────────────────────────────────
+
+model Company {
+  id          String    @id @default(uuid())
+  name        String
+  industry    String?
+  foundedDate DateTime?
+  currency    String    @default("USD")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users                 User[]
+  capitalContributions  CapitalContribution[]
+  transactions          Transaction[]
+  receipts              Receipt[]
+  invitations           Invitation[]
+  expenses              Expense[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique
+  email     String   @unique
+  firstName String
+  lastName  String
+  avatarUrl String?
+  companyId String?
+  role      Role     @default(member)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company              Company?              @relation(fields: [companyId], references: [id])
+  moduleAccess         ModuleAccess[]
+  capitalContributions CapitalContribution[]
+  transactions         Transaction[]
+  receipts             Receipt[]
+  invitationsSent      Invitation[]
+  expenses             Expense[]
+
+  @@index([clerkId])
+  @@index([companyId])
+}
+
+model ModuleAccess {
+  id         String           @id @default(uuid())
+  userId     String
+  moduleId   String
+  permission ModulePermission @default(read)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleId])
+}
+
+model Invitation {
+  id              String           @id @default(uuid())
+  companyId       String
+  invitedByUserId String
+  email           String
+  role            Role             @default(member)
+  status          InvitationStatus @default(pending)
+  token           String           @unique @default(uuid())
+  expiresAt       DateTime
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  company   Company @relation(fields: [companyId], references: [id])
+  invitedBy User    @relation(fields: [invitedByUserId], references: [id])
+
+  @@index([email])
+  @@index([token])
+}
+
+model CapitalContribution {
+  id            String               @id @default(uuid())
+  companyId     String
+  contributorId String
+  amount        Int                  // Always in cents
+  currency      String               @default("USD")
+  description   String
+  category      ContributionCategory
+  date          DateTime
+  receiptId     String?              @unique
+  notes         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  company     Company  @relation(fields: [companyId], references: [id])
+  contributor User     @relation(fields: [contributorId], references: [id])
+  receipt     Receipt? @relation(fields: [receiptId], references: [id])
+
+  @@index([companyId])
+  @@index([contributorId])
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  companyId   String
+  userId      String
+  type        TransactionType
+  amount      Int             // Always in cents
+  currency    String          @default("USD")
+  description String
+  category    String
+  date        DateTime
+  receiptId   String?         @unique
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  receipt Receipt? @relation(fields: [receiptId], references: [id])
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([type])
+}
+
+model Receipt {
+  id            String        @id @default(uuid())
+  companyId     String
+  uploadedById  String
+  imageUrl      String
+  thumbnailUrl  String?
+  status        ReceiptStatus @default(uploaded)
+  extractedData Json?
+  transactionId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  company              Company              @relation(fields: [companyId], references: [id])
+  uploadedBy           User                 @relation(fields: [uploadedById], references: [id])
+  capitalContribution  CapitalContribution?
+  transaction          Transaction?
+  expense              Expense?
+
+  @@index([companyId])
+  @@index([uploadedById])
+}
+
+model Expense {
+  id                String        @id @default(uuid())
+  companyId         String
+  userId            String
+  description       String
+  amount            Int           // Always in cents
+  currency          String        @default("USD")
+  category          String
+  date              DateTime
+  status            ExpenseStatus @default(pending)
+  receiptId         String?       @unique
+  reimbursementFile String?
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  company Company  @relation(fields: [companyId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+  receipt Receipt? @relation(fields: [receiptId], references: [id])
+
+  @@index([companyId])
+  @@index([userId])
+}
