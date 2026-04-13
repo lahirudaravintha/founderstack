@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "svix";
+import { clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
@@ -66,9 +67,10 @@ export async function POST(request: NextRequest) {
           // 1. Find all users in this company (excluding the owner)
           const companyMembers = await prisma.user.findMany({
             where: { companyId, id: { not: existingUser.id } },
-            select: { id: true },
+            select: { id: true, clerkId: true },
           });
           const memberIds = companyMembers.map(u => u.id);
+          const memberClerkIds = companyMembers.map(u => u.clerkId);
 
           // 2. Delete module access for all company users (including owner)
           await prisma.moduleAccess.deleteMany({
@@ -100,6 +102,16 @@ export async function POST(request: NextRequest) {
           await prisma.user.delete({
             where: { id: existingUser.id },
           });
+
+          // 7. Delete member Clerk accounts so they can re-sign-up
+          const clerk = await clerkClient();
+          for (const memberClerkId of memberClerkIds) {
+            try {
+              await clerk.users.deleteUser(memberClerkId);
+            } catch (err) {
+              console.error(`Failed to delete Clerk user ${memberClerkId}:`, err);
+            }
+          }
         } else {
           // Non-owner deleted — just remove the user and their access
           await prisma.moduleAccess.deleteMany({
