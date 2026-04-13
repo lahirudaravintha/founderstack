@@ -8,6 +8,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useExpenseCategories } from "@/contexts/ExpenseCategoriesContext";
 import { useInvitations, useCreateInvitation, useDeleteInvitation } from "@/hooks/useInvitations";
 import { useMe } from "@/hooks/useMe";
+import { useUsers, useUpdateUser, useRemoveUser } from "@/hooks/useUsers";
 import { UserPlus, Mail, CreditCard, Plug, Save, X, Check, KeyRound, Plus, Pencil, Trash2, Tag } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -306,20 +307,22 @@ export default function SettingsPage() {
   const { user } = useUser();
   const { data: me } = useMe();
   const { data: apiInvitations = [] } = useInvitations();
+  const { data: teamMembers = [] } = useUsers();
   const createInvitation = useCreateInvitation();
   const deleteInvitation = useDeleteInvitation();
+  const updateUser = useUpdateUser();
+  const removeUser = useRemoveUser();
   const [inviteEmail, setInviteEmail] = useState("");
 
-  const displayName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'You' : 'You';
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || '';
-  const members = [{
-    id: user?.id || '',
-    name: displayName,
-    email: displayEmail,
-    role: (me?.role || 'owner') as string,
-    modules: ['capital', 'expenses', 'equity', 'tasks', 'reports'],
-    isCurrentUser: true,
-  }];
+  const currentUserEmail = user?.primaryEmailAddress?.emailAddress || '';
+  const members = teamMembers.map((m) => ({
+    id: m.id,
+    name: `${m.firstName} ${m.lastName}`.trim() || m.email,
+    email: m.email,
+    role: m.role,
+    modules: m.role === 'owner' || m.role === 'admin' ? ['All'] : ['expenses'],
+    isCurrentUser: m.email === currentUserEmail,
+  }));
   const invites = apiInvitations.filter((i) => i.status === "pending");
   const [editModal, setEditModal] = useState<EditModalData | null>(null);
 
@@ -349,12 +352,15 @@ export default function SettingsPage() {
     });
   };
 
-  const handleSave = (updated: EditModalData) => {
+  const handleSave = async (updated: EditModalData) => {
     if (updated.type === 'member') {
-      // TODO: Wire to PUT /api/users when available
-      toast.success("Member updated");
+      try {
+        await updateUser.mutateAsync({ id: updated.id, role: updated.role });
+        toast.success("Member updated");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to update member");
+      }
     } else {
-      // TODO: Wire to PUT /api/invitations when available
       toast.success("Invitation updated");
     }
     setEditModal(null);
@@ -471,7 +477,21 @@ export default function SettingsPage() {
                 {!member.isCurrentUser && member.role !== 'owner' && (
                   <div className="flex gap-2">
                     <Button variant="ghost" size="sm" onClick={() => openMemberEdit(member.id)}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="text-destructive">Remove</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={async () => {
+                        try {
+                          await removeUser.mutateAsync(member.id);
+                          toast.success(`${member.name} removed`);
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Failed to remove member");
+                        }
+                      }}
+                    >
+                      Remove
+                    </Button>
                   </div>
                 )}
               </div>
