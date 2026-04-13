@@ -17,7 +17,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { DollarSign, TrendingUp, Users, CalendarIcon, AlertCircle, Eye, Paperclip } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Users, CalendarIcon, AlertCircle, Eye, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -68,6 +68,20 @@ export default function Dashboard() {
       return sum + convertToBase(c.amount, c.currency || baseCurrency, baseCurrency, rates);
     }, 0);
   const contributorCount = new Set(contributions.map((c) => c.contributorId)).size;
+
+  // Expense totals (approved + reimbursed only)
+  const approvedExpenses = expenses.filter(e => e.status === "approved" || e.status === "reimbursed");
+  const totalExpenses = approvedExpenses.reduce((sum, e) => {
+    return sum + convertToBase(e.amount, e.currency, baseCurrency, rates);
+  }, 0);
+  const thisMonthExpenses = approvedExpenses
+    .filter((e) => {
+      const d = new Date(e.createdAt);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((sum, e) => {
+      return sum + convertToBase(e.amount, e.currency, baseCurrency, rates);
+    }, 0);
 
   // Build chart data from contributions (converted to base currency)
   const contribReimbData = Object.values(
@@ -288,7 +302,7 @@ export default function Dashboard() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-3">
@@ -303,12 +317,28 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                  <TrendingDown className="w-5 h-5 text-red-500" />
+                </div>
+                <p className="text-sm text-muted-foreground font-medium">Total Expenses</p>
+              </div>
+              <p className="text-3xl font-bold font-mono">{expensesLoading ? "..." : formatCurrency(totalExpenses / 100, baseCurrency)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-info" />
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">This Month</p>
               </div>
-              <p className="text-3xl font-bold font-mono">{isLoading ? "..." : formatCurrency(thisMonthCapital / 100, baseCurrency)}</p>
+              <p className="text-3xl font-bold font-mono">{isLoading ? "..." : formatCurrency((thisMonthCapital - thisMonthExpenses) / 100, baseCurrency)}</p>
+              {thisMonthExpenses > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  +{formatCurrency(thisMonthCapital / 100, baseCurrency)} capital · -{formatCurrency(thisMonthExpenses / 100, baseCurrency)} expenses
+                </p>
+              )}
             </CardContent>
           </Card>
           <Card>
