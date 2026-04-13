@@ -173,10 +173,11 @@ export default function ExpensesPage() {
     return true;
   });
 
-  const totalExpenses = expenses.reduce((s, e) => s + convertToBase(e.amount, e.currency, baseCurrency, rates), 0);
+  const activeExpenses = expenses.filter((e) => e.status !== 'rejected');
+  const totalExpenses = activeExpenses.reduce((s, e) => s + convertToBase(e.amount, e.currency, baseCurrency, rates), 0);
   const pendingCount = expenses.filter((e) => e.status === 'pending').length;
   const now = new Date();
-  const thisMonth = expenses
+  const thisMonth = activeExpenses
     .filter((e) => { const d = new Date(e.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
     .reduce((s, e) => s + convertToBase(e.amount, e.currency, baseCurrency, rates), 0);
 
