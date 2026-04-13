@@ -26,7 +26,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { contributionCategories, currencies, formatCurrency } from "@/lib/mock-data";
+import { contributionCategories, formatCurrency } from "@/lib/mock-data";
+import { CurrencySelect } from "@/components/CurrencySelect";
 import { useCapitalContributions, useCreateContribution } from "@/hooks/useCapital";
 import { useMe } from "@/hooks/useMe";
 import { useExchangeRates, convertToBase } from "@/hooks/useExchangeRates";
@@ -43,18 +44,25 @@ export default function CapitalPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("cash");
   const [viewContributionId, setViewContributionId] = useState<string | null>(null);
 
+  const { data: me } = useMe();
+  const baseCurrency = me?.company?.currency || "USD";
+
   // Form state
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState(baseCurrency);
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");
+  // Sync currency default when company data loads
+  const [currencyInitialized, setCurrencyInitialized] = useState(false);
+  if (me?.company?.currency && !currencyInitialized) {
+    setCurrency(me.company.currency);
+    setCurrencyInitialized(true);
+  }
 
   const { data: contributions = [], isLoading } = useCapitalContributions();
   const createMutation = useCreateContribution();
-  const { data: me } = useMe();
   const { data: ratesData } = useExchangeRates();
-  const baseCurrency = me?.company?.currency || "USD";
   const rates = ratesData?.rates;
 
   const filtered = contributions.filter((c) => {
@@ -131,16 +139,7 @@ export default function CapitalPage() {
                         onChange={(e) => setAmount(e.target.value)}
                       />
                     </div>
-                    <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currencies.slice(0, 3).map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <CurrencySelect value={currency} onValueChange={setCurrency} />
                   </div>
                 </div>
 

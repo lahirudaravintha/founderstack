@@ -9,7 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { contributionCategories, currencies, formatCurrency } from "@/lib/mock-data";
+// Note: Select still used for category dropdowns
+import { contributionCategories, formatCurrency } from "@/lib/mock-data";
+import { CurrencySelect } from "@/components/CurrencySelect";
+import { useMe } from "@/hooks/useMe";
 import { X, CheckCircle, AlertTriangle, Paperclip, FileText, XCircle } from "lucide-react";
 
 type ReceiptData = {
@@ -55,11 +58,13 @@ type ReceiptViewerProps = {
 const expenseCategories = ["Software", "Hardware", "Travel", "Office", "Marketing", "Food", "Transport", "Utilities", "Professional Services", "Other"];
 
 export function ReceiptViewer({ receipt, onClose, onSaveAsContribution, onSaveManualExpense, saving }: ReceiptViewerProps) {
+  const { data: me } = useMe();
+  const baseCurrency = me?.company?.currency || "USD";
   const [showEditForm, setShowEditForm] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
   const [vendor, setVendor] = useState(receipt.extractedData?.vendorName || "");
   const [amount, setAmount] = useState(receipt.extractedData?.totalAmount ? String(receipt.extractedData.totalAmount / 100) : "");
-  const [currency, setCurrency] = useState(receipt.extractedData?.currency || "USD");
+  const [currency, setCurrency] = useState(receipt.extractedData?.currency || baseCurrency);
   const [date, setDate] = useState(receipt.extractedData?.date || new Date().toISOString().split("T")[0]);
   const [category, setCategory] = useState(receipt.extractedData?.category || "");
   const [description, setDescription] = useState("");
@@ -164,14 +169,7 @@ export function ReceiptViewer({ receipt, onClose, onSaveAsContribution, onSaveMa
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input type="number" step="0.01" className="pl-7 font-mono" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
                   </div>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {currencies.slice(0, 3).map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CurrencySelect value={currency} onValueChange={setCurrency} />
                 </div>
               </div>
               <div className="space-y-2">
@@ -262,14 +260,7 @@ export function ReceiptViewer({ receipt, onClose, onSaveAsContribution, onSaveMa
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input type="number" className="pl-7 font-mono" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
                   </div>
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {currencies.slice(0, 3).map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CurrencySelect value={currency} onValueChange={setCurrency} />
                 </div>
               </div>
               <div className="space-y-2">

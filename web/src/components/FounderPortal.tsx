@@ -13,6 +13,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ReceiptViewer } from "@/components/ReceiptViewer";
 import { CapitalDetailViewer } from "@/components/CapitalDetailViewer";
 import { toast } from "sonner";
+import { useMe } from "@/hooks/useMe";
+import { CurrencySelect } from "@/components/CurrencySelect";
 import { useUpdateReceipt } from "@/hooks/useReceipts";
 
 function CameraCapture({ open, onClose, onCapture }: { open: boolean; onClose: () => void; onCapture: (file: File) => void }) {
@@ -136,9 +138,19 @@ export function FounderPortal() {
   const [showForm, setShowForm] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [category, setCategory] = useState<ContributionCategory>("Cash");
+  const { data: me } = useMe();
+  const baseCurrency = me?.company?.currency || "USD";
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState(baseCurrency);
   const [description, setDescription] = useState("");
   const [fileName, setFileName] = useState("");
+
+  // Sync currency default when company data loads
+  const [currencyInitialized, setCurrencyInitialized] = useState(false);
+  if (me?.company?.currency && !currencyInitialized) {
+    setCurrency(me.company.currency);
+    setCurrencyInitialized(true);
+  }
 
   const { data: contributions = [] } = useCapitalContributions();
   const { data: receipts = [] } = useReceipts();
@@ -203,6 +215,7 @@ export function FounderPortal() {
     try {
       await createContribution.mutateAsync({
         amount: Math.round(parseFloat(amount) * 100),
+        currency,
         description,
         category: category.toLowerCase().replace(/ /g, "_"),
         date: new Date().toISOString(),
@@ -280,14 +293,17 @@ export function FounderPortal() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Amount (USD)</label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-foreground font-mono text-lg placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Amount</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="flex-1 px-4 py-3 rounded-xl bg-muted border border-border text-foreground font-mono text-lg placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    <CurrencySelect value={currency} onValueChange={setCurrency} className="w-28" />
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Description</label>

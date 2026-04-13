@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/mock-data";
+import { CurrencySelect } from "@/components/CurrencySelect";
 import { useExpenseCategories, getCategoryIcon, iconOptions } from "@/contexts/ExpenseCategoriesContext";
 import { useExpenses, useCreateExpense, useUpdateExpense } from "@/hooks/useExpenses";
 import { useMe } from "@/hooks/useMe";
@@ -54,10 +55,20 @@ const statusIcon: Record<string, typeof Check> = {
 function AddExpenseModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { categories } = useExpenseCategories();
   const createMutation = useCreateExpense();
+  const { data: me } = useMe();
+  const baseCurrency = me?.company?.currency || "USD";
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState(baseCurrency);
   const [category, setCategory] = useState(categories[0]?.name || "Other");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+
+  // Sync currency default when company data loads
+  const [currencyInitialized, setCurrencyInitialized] = useState(false);
+  if (me?.company?.currency && !currencyInitialized) {
+    setCurrency(me.company.currency);
+    setCurrencyInitialized(true);
+  }
 
   const handleSave = async () => {
     if (!description || !amount) {
@@ -68,6 +79,7 @@ function AddExpenseModal({ open, onClose }: { open: boolean; onClose: () => void
       await createMutation.mutateAsync({
         description,
         amount: Math.round(parseFloat(amount) * 100),
+        currency,
         category,
         date: new Date(date).toISOString(),
       });
@@ -93,9 +105,12 @@ function AddExpenseModal({ open, onClose }: { open: boolean; onClose: () => void
           </div>
           <div className="space-y-2">
             <Label>Amount</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input type="number" className="pl-7 font-mono" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input type="number" className="pl-7 font-mono" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              </div>
+              <CurrencySelect value={currency} onValueChange={setCurrency} />
             </div>
           </div>
           <div className="space-y-2">
