@@ -1,12 +1,17 @@
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useMe } from "@/hooks/useMe";
 import { cn } from "@/lib/utils";
 import { Shield, User } from "lucide-react";
 
 export function ViewToggle() {
   const { mode, setMode, isNativeApp } = useViewMode();
+  const { data: me } = useMe();
 
   // Hide toggle on native — always founder mode
   if (isNativeApp) return null;
+
+  // Hide toggle for members and viewers — they only see founder mode
+  if (me && me.role !== "owner" && me.role !== "admin") return null;
 
   return (
     <div className="flex items-center bg-muted rounded-xl p-1 gap-0.5">
