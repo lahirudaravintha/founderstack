@@ -5,7 +5,7 @@ function getClient() {
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY not found in environment variables");
   }
-  return new Anthropic({ apiKey });
+  return new Anthropic({ apiKey, maxRetries: 5 });
 }
 
 export type ExtractedReceiptData = {
@@ -52,7 +52,7 @@ export async function extractReceiptData(
       };
 
   const response = await getClient().messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     messages: [
       {
