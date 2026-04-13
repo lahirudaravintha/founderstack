@@ -81,6 +81,7 @@ export function AppSidebar() {
   const { data: me } = useMe();
 
   const [bouncing, setBouncing] = useState(false);
+  const isAdminRole = me?.role === "owner" || me?.role === "admin";
 
   const allowedRoutes = useMemo(() => getAllowedRoutes(me?.role), [me?.role]);
 
@@ -102,7 +103,7 @@ export function AppSidebar() {
 
   // Bounce the sidebar indicator every 10 seconds when not hovered
   useEffect(() => {
-    if (isFounder) return;
+    if (isFounder || !isAdminRole) return;
     const interval = setInterval(() => {
       if (!hovered) {
         setBouncing(true);
@@ -110,12 +111,12 @@ export function AppSidebar() {
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [hovered, isFounder]);
+  }, [hovered, isFounder, isAdminRole]);
 
   return (
     <>
-      {/* Desktop: invisible trigger strip + sliding sidebar — admin only */}
-      {!isFounder && (
+      {/* Desktop: invisible trigger strip + sliding sidebar — admin/owner only */}
+      {!isFounder && isAdminRole && (
         <div
           className="hidden md:block fixed left-0 top-0 h-full z-50"
           style={{ width: hovered ? 272 : 16 }}
