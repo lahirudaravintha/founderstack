@@ -89,7 +89,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  company              Company?              @relation(fields: [companyId], references: [id])
+  company              Company?              @relation(fields: [companyId], references: [id], onDelete: Cascade)
   moduleAccess         ModuleAccess[]
   capitalContributions CapitalContribution[]
   transactions         Transaction[]
@@ -126,8 +126,8 @@ model Invitation {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  company   Company @relation(fields: [companyId], references: [id])
-  invitedBy User    @relation(fields: [invitedByUserId], references: [id])
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invitedBy User    @relation(fields: [invitedByUserId], references: [id], onDelete: Cascade)
 
   @@index([email])
   @@index([token])
@@ -136,7 +136,7 @@ model Invitation {
 model CapitalContribution {
   id            String               @id @default(uuid())
   companyId     String
-  contributorId String
+  contributorId String?
   amount        Int                  // Always in cents
   currency      String               @default("USD")
   description   String
@@ -147,8 +147,8 @@ model CapitalContribution {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
-  company     Company  @relation(fields: [companyId], references: [id])
-  contributor User     @relation(fields: [contributorId], references: [id])
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contributor User?    @relation(fields: [contributorId], references: [id], onDelete: SetNull)
   receipt     Receipt? @relation(fields: [receiptId], references: [id])
 
   @@index([companyId])
@@ -158,7 +158,7 @@ model CapitalContribution {
 model Transaction {
   id          String          @id @default(uuid())
   companyId   String
-  userId      String
+  userId      String?
   type        TransactionType
   amount      Int             // Always in cents
   currency    String          @default("USD")
@@ -170,8 +170,8 @@ model Transaction {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  company Company @relation(fields: [companyId], references: [id])
-  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   receipt Receipt? @relation(fields: [receiptId], references: [id])
 
   @@index([companyId])
@@ -182,7 +182,7 @@ model Transaction {
 model Receipt {
   id            String        @id @default(uuid())
   companyId     String
-  uploadedById  String
+  uploadedById  String?
   imageUrl      String
   thumbnailUrl  String?
   status        ReceiptStatus @default(uploaded)
@@ -191,8 +191,8 @@ model Receipt {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  company              Company              @relation(fields: [companyId], references: [id])
-  uploadedBy           User                 @relation(fields: [uploadedById], references: [id])
+  company              Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  uploadedBy           User?                @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
   capitalContribution  CapitalContribution?
   transaction          Transaction?
   expense              Expense?
@@ -204,7 +204,7 @@ model Receipt {
 model Expense {
   id                String        @id @default(uuid())
   companyId         String
-  userId            String
+  userId            String?
   description       String
   amount            Int           // Always in cents
   currency          String        @default("USD")
@@ -217,8 +217,8 @@ model Expense {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  company Company  @relation(fields: [companyId], references: [id])
-  user    User     @relation(fields: [userId], references: [id])
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   receipt Receipt? @relation(fields: [receiptId], references: [id])
 
   @@index([companyId])

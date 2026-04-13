@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +16,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useUser } from "@clerk/clerk-react";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useMe } from "@/hooks/useMe";
 
 interface NavItem {
   to: string;
@@ -53,14 +54,51 @@ const adminMobileTabItems = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
+/** Routes each role is allowed to see */
+const adminOrOwnerRoutes = new Set(["/", "/capital", "/expenses", "/receipts", "/settings"]);
+const memberRoutes = new Set(["/receipts", "/expenses"]);
+const viewerRoutes = new Set(["/receipts"]);
+
+function getAllowedRoutes(role: string | undefined): Set<string> {
+  switch (role) {
+    case "owner":
+    case "admin":
+      return adminOrOwnerRoutes;
+    case "member":
+      return memberRoutes;
+    case "viewer":
+      return viewerRoutes;
+    default:
+      return viewerRoutes;
+  }
+}
+
 export function AppSidebar() {
   const location = useLocation();
   const [hovered, setHovered] = useState(false);
   const { isFounder, isNativeApp } = useViewMode();
   const { user } = useUser();
+  const { data: me } = useMe();
 
   const [bouncing, setBouncing] = useState(false);
-  const mobileTabItems = isFounder ? founderMobileTabItems : adminMobileTabItems;
+
+  const allowedRoutes = useMemo(() => getAllowedRoutes(me?.role), [me?.role]);
+
+  const filteredAdminNavItems = useMemo(
+    () => adminNavItems.filter((item) => item.comingSoon || allowedRoutes.has(item.to)),
+    [allowedRoutes],
+  );
+
+  const filteredSecondaryItems = useMemo(
+    () => secondaryItems.filter((item) => allowedRoutes.has(item.to)),
+    [allowedRoutes],
+  );
+
+  const baseMobileTabItems = isFounder ? founderMobileTabItems : adminMobileTabItems;
+  const mobileTabItems = useMemo(
+    () => baseMobileTabItems.filter((item) => allowedRoutes.has(item.to)),
+    [baseMobileTabItems, allowedRoutes],
+  );
 
   // Bounce the sidebar indicator every 10 seconds when not hovered
   useEffect(() => {
@@ -116,7 +154,7 @@ export function AppSidebar() {
               </div>
 
               <nav className="flex-1 py-2 px-3 space-y-0.5 overflow-y-auto">
-                {adminNavItems.map((item) => {
+                {filteredAdminNavItems.map((item) => {
                   const isActive = location.pathname === item.to;
                   return (
                     <Link
@@ -146,9 +184,11 @@ export function AppSidebar() {
                   );
                 })}
 
-                <Separator className="my-3 bg-border/50" />
+                {filteredAdminNavItems.length > 0 && filteredSecondaryItems.length > 0 && (
+                  <Separator className="my-3 bg-border/50" />
+                )}
 
-                {secondaryItems.map((item) => {
+                {filteredSecondaryItems.map((item) => {
                   const isActive = location.pathname === item.to;
                   return (
                     <Link

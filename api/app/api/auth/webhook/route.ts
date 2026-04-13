@@ -50,6 +50,35 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (event.type === "user.deleted") {
+    const { id: clerkId } = event.data;
+
+    try {
+      const existingUser = await prisma.user.findUnique({
+        where: { clerkId },
+      });
+
+      if (existingUser) {
+        // Delete module access records
+        await prisma.moduleAccess.deleteMany({
+          where: { userId: existingUser.id },
+        });
+
+        // Detach from company, then delete user record
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { companyId: null },
+        });
+
+        await prisma.user.delete({
+          where: { id: existingUser.id },
+        });
+      }
+    } catch (err) {
+      console.error("Webhook user.deleted error:", err);
+    }
+  }
+
   if (event.type === "user.created") {
     const { id: clerkId, email_addresses, first_name, last_name, image_url } = event.data;
     const email = email_addresses[0]?.email_address;

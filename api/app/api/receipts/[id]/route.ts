@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAuthWithCompany } from "@/lib/auth";
 import { requireModuleAccess } from "@/lib/permissions";
 import { handleError, AppError } from "@/lib/errors";
 import { prisma } from "@/lib/db";
+
+const UpdateReceiptSchema = z.object({
+  vendor: z.string().optional(),
+  date: z.string().optional(),
+  amount: z.number().optional(),
+  currency: z.string().optional(),
+  category: z.string().optional(),
+  status: z.string().optional(),
+  notes: z.string().optional(),
+}).strict();
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -10,7 +21,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const user = await requireAuthWithCompany();
-    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "capital", "read");
+    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "expenses", "read");
 
     const receipt = await prisma.receipt.findFirst({
       where: { id, companyId: user.companyId },
@@ -28,9 +39,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const user = await requireAuthWithCompany();
-    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "capital", "write");
+    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "expenses", "write");
 
     const body = await request.json();
+    const data = UpdateReceiptSchema.parse(body);
 
     const existing = await prisma.receipt.findFirst({
       where: { id, companyId: user.companyId },
@@ -41,30 +53,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const receipt = await prisma.receipt.update({
       where: { id },
       data: {
-        ...(body.status !== undefined && { status: body.status }),
-        ...(body.extractedData !== undefined && { extractedData: body.extractedData }),
-        ...(body.transactionId !== undefined && { transactionId: body.transactionId }),
+        ...(data.vendor !== undefined && { vendor: data.vendor }),
+        ...(data.date !== undefined && { date: new Date(data.date) }),
+        ...(data.amount !== undefined && { amount: data.amount }),
+        ...(data.currency !== undefined && { currency: data.currency }),
+        ...(data.category !== undefined && { category: data.category }),
+        ...(data.status !== undefined && { status: data.status }),
+        ...(data.notes !== undefined && { notes: data.notes }),
       },
     });
-
-    // If expense data is provided, also update the linked expense
-    if (body.expenseData) {
-      const linkedExpense = await prisma.expense.findFirst({
-        where: { receiptId: id },
-      });
-      if (linkedExpense) {
-        await prisma.expense.update({
-          where: { id: linkedExpense.id },
-          data: {
-            ...(body.expenseData.description && { description: body.expenseData.description }),
-            ...(body.expenseData.amount !== undefined && { amount: body.expenseData.amount }),
-            ...(body.expenseData.currency && { currency: body.expenseData.currency }),
-            ...(body.expenseData.category && { category: body.expenseData.category }),
-            ...(body.expenseData.date && { date: new Date(body.expenseData.date) }),
-          },
-        });
-      }
-    }
 
     return NextResponse.json(receipt);
   } catch (err) {
@@ -76,7 +73,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const user = await requireAuthWithCompany();
-    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "capital", "write");
+    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "expenses", "write");
 
     const existing = await prisma.receipt.findFirst({
       where: { id, companyId: user.companyId },

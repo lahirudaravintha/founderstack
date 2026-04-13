@@ -8,7 +8,7 @@ import { extractReceiptData } from "@/lib/ocr";
 export async function GET() {
   try {
     const user = await requireAuthWithCompany();
-    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "capital", "read");
+    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "expenses", "read");
 
     const receipts = await prisma.receipt.findMany({
       where: { companyId: user.companyId },
@@ -28,7 +28,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuthWithCompany();
-    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "capital", "write");
+    requireModuleAccess(user as Parameters<typeof requireModuleAccess>[0], "expenses", "write");
 
     const body = await request.json();
 
