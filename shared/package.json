@@ -1,0 +1,8 @@
+{
+  "name": "@founderstack/shared",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "zod": "^4.3.6"
+  }
+}
