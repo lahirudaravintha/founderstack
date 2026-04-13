@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const contribution = await prisma.capitalContribution.create({
       data: {
         companyId: user.companyId,
-        contributorId: user.id,
+        contributorId: data.contributorId || user.id,
         amount: data.amount,
         currency: data.currency,
         description: data.description,

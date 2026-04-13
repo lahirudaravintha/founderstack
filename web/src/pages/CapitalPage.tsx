@@ -32,7 +32,8 @@ import { useCapitalContributions, useCreateContribution } from "@/hooks/useCapit
 import { useMe } from "@/hooks/useMe";
 import { useExchangeRates, convertToBase } from "@/hooks/useExchangeRates";
 import { CapitalDetailViewer } from "@/components/CapitalDetailViewer";
-import { Plus, Search, Paperclip } from "lucide-react";
+import { Plus, Search, Paperclip, User } from "lucide-react";
+import { useUsers } from "@/hooks/useUsers";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -53,11 +54,17 @@ export default function CapitalPage() {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");
+  const [contributorId, setContributorId] = useState("");
+  const { data: users = [] } = useUsers();
   // Sync currency default when company data loads
   const [currencyInitialized, setCurrencyInitialized] = useState(false);
   if (me?.company?.currency && !currencyInitialized) {
     setCurrency(me.company.currency);
     setCurrencyInitialized(true);
+  }
+  // Default contributor to current user
+  if (me && !contributorId) {
+    setContributorId(me.id);
   }
 
   const { data: contributions = [], isLoading } = useCapitalContributions();
@@ -93,6 +100,7 @@ export default function CapitalPage() {
         category: selectedCategory,
         date: new Date(date).toISOString(),
         notes: notes || undefined,
+        contributorId: contributorId || undefined,
       });
       toast.success("Contribution added successfully");
       setModalOpen(false);
@@ -101,6 +109,7 @@ export default function CapitalPage() {
       setDescription("");
       setNotes("");
       setSelectedCategory("cash");
+      setContributorId(me?.id || "");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to add contribution");
     }
@@ -141,6 +150,26 @@ export default function CapitalPage() {
                     </div>
                     <CurrencySelect value={currency} onValueChange={setCurrency} />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Assign to</Label>
+                  <Select value={contributorId} onValueChange={setContributorId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select team member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          <span className="flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-muted-foreground" />
+                            {u.firstName} {u.lastName}
+                            <span className="text-muted-foreground text-xs">({u.role})</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

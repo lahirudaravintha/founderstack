@@ -29,6 +29,7 @@ type CreateContributionInput = {
   category: string;
   date: string;
   notes?: string;
+  contributorId?: string;
 };
 
 export function useCapitalContributions() {

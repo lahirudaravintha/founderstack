@@ -16,6 +16,7 @@ export const CreateContributionInput = z.object({
   category: z.enum(contributionCategories),
   date: z.string().datetime(),
   notes: z.string().max(2000).optional(),
+  contributorId: z.string().uuid().optional(),
 });
 
 export const UpdateContributionInput = CreateContributionInput.partial();
