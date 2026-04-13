@@ -38,16 +38,17 @@ export function useCreateReceipt() {
     mutationFn: async (data: { imageUrl: string }) => {
       // Step 1: Upload receipt (fast — just saves image + creates placeholder expense)
       const receipt = await api.post<Receipt>("/api/receipts", data);
-      queryClient.invalidateQueries({ queryKey: ["receipts"] });
 
-      // Step 2: Trigger OCR in background (may take 10-30s)
-      try {
-        const updated = await api.post<Receipt>(`/api/receipts/${receipt.id}/ocr`, {});
-        return updated;
-      } catch {
-        // OCR failed but receipt was still created — return the original
-        return receipt;
-      }
+      // Step 2: Fire OCR in background — don't await, poll for results
+      api.post(`/api/receipts/${receipt.id}/ocr`, {}).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["receipts"] });
+        queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      }).catch(() => {
+        // OCR timed out or failed — receipt still exists, user can enter manually
+        queryClient.invalidateQueries({ queryKey: ["receipts"] });
+      });
+
+      return receipt;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receipts"] });

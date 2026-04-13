@@ -161,14 +161,14 @@ export function FounderPortal() {
       toast.error("File too large. Maximum size is 25MB.");
       return;
     }
-    const toastId = toast.loading("Uploading and analyzing receipt...");
+    const toastId = toast.loading("Uploading receipt...");
     const reader = new FileReader();
     reader.onload = async () => {
       try {
         await createReceipt.mutateAsync({
           imageUrl: reader.result as string,
         });
-        toast.success("Receipt uploaded — pending approval in Expenses", { id: toastId });
+        toast.success("Receipt uploaded! Analyzing in background...", { id: toastId });
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Upload failed", { id: toastId });
       }
