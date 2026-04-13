@@ -5,6 +5,9 @@ import { handleError } from "@/lib/errors";
 import { prisma } from "@/lib/db";
 import { extractReceiptData } from "@/lib/ocr";
 
+// Allow up to 60s for OCR processing
+export const maxDuration = 60;
+
 export async function GET() {
   try {
     const user = await requireAuthWithCompany();
@@ -102,6 +105,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(updated, { status: 201 });
   } catch (err) {
+    console.error("Receipt upload error:", err);
     return handleError(err);
   }
 }
