@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "npx prisma generate && next build --webpack",
+    "build": "npx prisma generate && npx prisma migrate deploy && next build --webpack",
     "postinstall": "npx prisma generate",
     "start": "next start",
     "db:migrate:deploy": "npx prisma migrate deploy",
