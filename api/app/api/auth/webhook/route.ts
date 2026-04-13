@@ -59,20 +59,62 @@ export async function POST(request: NextRequest) {
       });
 
       if (existingUser) {
-        // Delete module access records
-        await prisma.moduleAccess.deleteMany({
-          where: { userId: existingUser.id },
-        });
+        const companyId = existingUser.companyId;
 
-        // Detach from company, then delete user record
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: { companyId: null },
-        });
+        if (existingUser.role === "owner" && companyId) {
+          // Owner deleted — nuke the entire company and all its members.
+          // 1. Find all users in this company (excluding the owner)
+          const companyMembers = await prisma.user.findMany({
+            where: { companyId, id: { not: existingUser.id } },
+            select: { id: true },
+          });
+          const memberIds = companyMembers.map(u => u.id);
 
-        await prisma.user.delete({
-          where: { id: existingUser.id },
-        });
+          // 2. Delete module access for all company users (including owner)
+          await prisma.moduleAccess.deleteMany({
+            where: { userId: { in: [...memberIds, existingUser.id] } },
+          });
+
+          // 3. Detach all users from company so Company delete doesn't
+          //    hit FK constraints from User → Company
+          await prisma.user.updateMany({
+            where: { companyId },
+            data: { companyId: null },
+          });
+
+          // 4. Delete the company — cascades to expenses, receipts,
+          //    contributions, invitations, transactions, etc.
+          await prisma.company.delete({
+            where: { id: companyId },
+          });
+
+          // 5. Delete all former member user records so they can
+          //    re-sign-up or create their own accounts
+          if (memberIds.length > 0) {
+            await prisma.user.deleteMany({
+              where: { id: { in: memberIds } },
+            });
+          }
+
+          // 6. Delete the owner user record
+          await prisma.user.delete({
+            where: { id: existingUser.id },
+          });
+        } else {
+          // Non-owner deleted — just remove the user and their access
+          await prisma.moduleAccess.deleteMany({
+            where: { userId: existingUser.id },
+          });
+
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { companyId: null },
+          });
+
+          await prisma.user.delete({
+            where: { id: existingUser.id },
+          });
+        }
       }
     } catch (err) {
       console.error("Webhook user.deleted error:", err);
