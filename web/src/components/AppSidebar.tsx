@@ -55,9 +55,9 @@ const adminMobileTabItems = [
 ];
 
 /** Routes each role is allowed to see */
-const adminOrOwnerRoutes = new Set(["/", "/capital", "/expenses", "/receipts", "/settings"]);
-const memberRoutes = new Set(["/receipts", "/expenses"]);
-const viewerRoutes = new Set(["/receipts"]);
+const adminOrOwnerRoutes = new Set(["/", "/capital", "/expenses", "/receipts", "/settings", "/myportal"]);
+const memberRoutes = new Set(["/myportal", "/receipts", "/expenses"]);
+const viewerRoutes = new Set(["/myportal", "/receipts"]);
 
 function getAllowedRoutes(role: string | undefined): Set<string> {
   switch (role) {

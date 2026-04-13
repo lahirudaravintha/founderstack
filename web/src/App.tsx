@@ -9,6 +9,7 @@ import CapitalPage from "./pages/CapitalPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import ReceiptsPage from "./pages/ReceiptsPage";
 import SettingsPage from "./pages/SettingsPage";
+import MyPortalPage from "./pages/MyPortalPage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import OnboardingPage from "./pages/OnboardingPage";
@@ -83,7 +84,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 
   // Members and viewers cannot access admin routes — redirect to receipts
   if (me && me.role !== "owner" && me.role !== "admin") {
-    return <Navigate to="/receipts" replace />;
+    return <Navigate to="/myportal" replace />;
   }
 
   return <>{children}</>;
@@ -119,6 +120,7 @@ function ClerkWithRoutes() {
               <Route path="/settings" element={<ProtectedRoute><OnboardingGate><AdminRoute><SettingsPage /></AdminRoute></OnboardingGate></ProtectedRoute>} />
 
               {/* All authenticated users can access these */}
+              <Route path="/myportal" element={<ProtectedRoute><OnboardingGate><MyPortalPage /></OnboardingGate></ProtectedRoute>} />
               <Route path="/expenses" element={<ProtectedRoute><OnboardingGate><ExpensesPage /></OnboardingGate></ProtectedRoute>} />
               <Route path="/receipts" element={<ProtectedRoute><OnboardingGate><ReceiptsPage /></OnboardingGate></ProtectedRoute>} />
 

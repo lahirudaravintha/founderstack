@@ -1,8 +1,5 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { FounderPortal } from "@/components/FounderPortal";
-import { MobileFounderHome } from "@/components/mobile/MobileFounderHome";
-import { useViewMode } from "@/contexts/ViewModeContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCapitalContributions } from "@/hooks/useCapital";
@@ -41,7 +38,6 @@ const presets = [
 ] as const;
 
 export default function Dashboard() {
-  const { isFounder } = useViewMode();
   const isMobile = useIsMobile();
   const { data: contributions = [], isLoading } = useCapitalContributions();
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses();
@@ -94,14 +90,6 @@ export default function Dashboard() {
   });
   const [popoverOpen, setPopoverOpen] = useState(false);
 
-  // On mobile in founder mode, show the mobile-optimized home
-  if (isFounder && isMobile) {
-    return (
-      <AppLayout title="Dashboard" founderTitle="Home" founderContent={<MobileFounderHome />}>
-        <div />
-      </AppLayout>
-    );
-  }
 
   const handlePreset = (label: string, days: number) => {
     setActivePreset(label);
@@ -154,7 +142,7 @@ export default function Dashboard() {
   };
 
   return (
-    <AppLayout title="Dashboard" founderTitle="My Portal" founderContent={<FounderPortal />}>
+    <AppLayout title="Dashboard">
       <div className="space-y-6">
         {/* Pending Review Banner */}
         {pendingExpenses.length > 0 && (
