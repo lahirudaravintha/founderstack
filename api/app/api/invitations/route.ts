@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Send invitation email via Resend
-    const signUpUrl = `${process.env.CLERK_INVITATION_REDIRECT_URL || "https://app.founderspet.com/sign-up"}`;
+    const baseSignUpUrl = process.env.CLERK_INVITATION_REDIRECT_URL || "https://app.founderspet.com/sign-up";
+    const signUpUrl = `${baseSignUpUrl}?email=${encodeURIComponent(data.email)}&token=${invitation.token}`;
     const inviterName = `${user.firstName} ${user.lastName}`.trim() || user.email;
 
     try {
