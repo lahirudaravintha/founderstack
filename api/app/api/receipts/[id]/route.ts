@@ -6,14 +6,16 @@ import { handleError, AppError } from "@/lib/errors";
 import { prisma } from "@/lib/db";
 
 const UpdateReceiptSchema = z.object({
-  vendor: z.string().optional(),
-  date: z.string().optional(),
-  amount: z.number().optional(),
-  currency: z.string().optional(),
-  category: z.string().optional(),
   status: z.string().optional(),
-  notes: z.string().optional(),
-}).strict();
+  extractedData: z.record(z.unknown()).optional(),
+  expenseData: z.object({
+    description: z.string().optional(),
+    amount: z.number().optional(),
+    currency: z.string().optional(),
+    category: z.string().optional(),
+    date: z.string().optional(),
+  }).optional(),
+});
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -53,15 +55,25 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const receipt = await prisma.receipt.update({
       where: { id },
       data: {
-        ...(data.vendor !== undefined && { vendor: data.vendor }),
-        ...(data.date !== undefined && { date: new Date(data.date) }),
-        ...(data.amount !== undefined && { amount: data.amount }),
-        ...(data.currency !== undefined && { currency: data.currency }),
-        ...(data.category !== undefined && { category: data.category }),
         ...(data.status !== undefined && { status: data.status }),
-        ...(data.notes !== undefined && { notes: data.notes }),
+        ...(data.extractedData !== undefined && { extractedData: data.extractedData }),
       },
+      include: { expense: { select: { id: true, status: true } } },
     });
+
+    // Update linked expense if expenseData provided
+    if (data.expenseData && receipt.expense) {
+      await prisma.expense.update({
+        where: { id: receipt.expense.id },
+        data: {
+          ...(data.expenseData.description !== undefined && { description: data.expenseData.description }),
+          ...(data.expenseData.amount !== undefined && { amount: data.expenseData.amount }),
+          ...(data.expenseData.currency !== undefined && { currency: data.expenseData.currency }),
+          ...(data.expenseData.category !== undefined && { category: data.expenseData.category }),
+          ...(data.expenseData.date !== undefined && { date: new Date(data.expenseData.date) }),
+        },
+      });
+    }
 
     return NextResponse.json(receipt);
   } catch (err) {
