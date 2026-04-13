@@ -39,9 +39,30 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   return res.json();
 }
 
+async function streamPost(path: string, body: unknown): Promise<string> {
+  const token = await getAuthToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: { message: res.statusText } }));
+    throw new Error(errorData.error?.message || `Request failed: ${res.status}`);
+  }
+
+  // Read the full streamed response as text
+  return res.text();
+}
+
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body: unknown) => request<T>("POST", path, { body }),
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, { body }),
   del: <T>(path: string) => request<T>("DELETE", path),
+  streamPost,
 };

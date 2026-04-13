@@ -39,12 +39,11 @@ export function useCreateReceipt() {
       // Step 1: Upload receipt (fast — just saves image + creates placeholder expense)
       const receipt = await api.post<Receipt>("/api/receipts", data);
 
-      // Step 2: Fire OCR in background — don't await, poll for results
-      api.post(`/api/receipts/${receipt.id}/ocr`, {}).then(() => {
+      // Step 2: Fire OCR via streaming endpoint (keeps connection alive up to 60s)
+      api.streamPost(`/api/receipts/${receipt.id}/ocr`, {}).then(() => {
         queryClient.invalidateQueries({ queryKey: ["receipts"] });
         queryClient.invalidateQueries({ queryKey: ["expenses"] });
       }).catch(() => {
-        // OCR timed out or failed — receipt still exists, user can enter manually
         queryClient.invalidateQueries({ queryKey: ["receipts"] });
       });
 
