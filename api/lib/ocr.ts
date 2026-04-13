@@ -1,26 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { readFileSync } from "fs";
-import { resolve } from "path";
-
-function getApiKey(): string {
-  // Try env var first
-  if (process.env.ANTHROPIC_API_KEY) {
-    return process.env.ANTHROPIC_API_KEY;
-  }
-  // Fallback: read directly from .env file
-  try {
-    const envPath = resolve(process.cwd(), ".env");
-    const content = readFileSync(envPath, "utf-8");
-    const match = content.match(/ANTHROPIC_API_KEY=["']?([^\s"']+)["']?/);
-    if (match) return match[1];
-  } catch {}
-  throw new Error("ANTHROPIC_API_KEY not found");
-}
 
 function getClient() {
-  return new Anthropic({
-    apiKey: getApiKey(),
-  });
+  const apiKey = (process.env.ANTHROPIC_API_KEY || "").replace(/^["']|["']$/g, "").trim();
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY not found in environment variables");
+  }
+  return new Anthropic({ apiKey });
 }
 
 export type ExtractedReceiptData = {

@@ -66,8 +66,8 @@ export async function POST(_request: NextRequest, { params }: Params) {
           });
 
           controller.enqueue(encoder.encode(JSON.stringify({ status: "done", receipt: updated }) + "\n"));
-        } catch (ocrErr) {
-          console.error("OCR failed:", ocrErr);
+        } catch (ocrErr: any) {
+          console.error("OCR failed:", ocrErr?.message || ocrErr, ocrErr?.status, ocrErr?.error);
           await prisma.receipt.update({
             where: { id },
             data: { status: "failed" },
