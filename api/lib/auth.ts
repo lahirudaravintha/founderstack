@@ -41,12 +41,28 @@ export async function requireAuth(): Promise<User> {
       include: { moduleAccess: true },
     });
 
-    // Mark invitation as accepted
+    // Mark invitation as accepted and grant default module access
     if (invitation) {
       await prisma.invitation.update({
         where: { id: invitation.id },
         data: { status: "accepted" },
       });
+
+      // Grant default module access for non-admin roles
+      if (invitation.role === "member" || invitation.role === "viewer") {
+        const permission = invitation.role === "member" ? "write" : "read";
+        await prisma.moduleAccess.createMany({
+          data: [
+            { userId: user.id, moduleId: "expenses", permission },
+            { userId: user.id, moduleId: "capital", permission: "read" },
+          ],
+        });
+        // Reload user with module access
+        user = await prisma.user.findUniqueOrThrow({
+          where: { id: user.id },
+          include: { moduleAccess: true },
+        });
+      }
     }
   }
 
@@ -72,7 +88,39 @@ export async function requireAuth(): Promise<User> {
         where: { id: invitation.id },
         data: { status: "accepted" },
       });
+
+      // Grant default module access for non-admin roles
+      if (invitation.role === "member" || invitation.role === "viewer") {
+        const permission = invitation.role === "member" ? "write" : "read";
+        await prisma.moduleAccess.createMany({
+          data: [
+            { userId: user.id, moduleId: "expenses", permission },
+            { userId: user.id, moduleId: "capital", permission: "read" },
+          ],
+          skipDuplicates: true,
+        });
+        user = await prisma.user.findUniqueOrThrow({
+          where: { id: user.id },
+          include: { moduleAccess: true },
+        });
+      }
     }
+  }
+
+  // Backfill module access for members/viewers who have a company but no access records
+  if (user.companyId && user.moduleAccess.length === 0 && (user.role === "member" || user.role === "viewer")) {
+    const permission = user.role === "member" ? "write" : "read";
+    await prisma.moduleAccess.createMany({
+      data: [
+        { userId: user.id, moduleId: "expenses", permission },
+        { userId: user.id, moduleId: "capital", permission: "read" },
+      ],
+      skipDuplicates: true,
+    });
+    user = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      include: { moduleAccess: true },
+    });
   }
 
   return user;
