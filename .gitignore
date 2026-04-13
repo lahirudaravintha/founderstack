@@ -5,7 +5,7 @@ node_modules
 .env.production
 *.log
 mobile-web-backup/
-mobile/
+/mobile/
 api/.next/
 api/generated/
 web/dist/
