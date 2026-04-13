@@ -35,10 +35,23 @@ export function useReceipts() {
 export function useCreateReceipt() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { imageUrl: string; extractedData?: Record<string, unknown> }) =>
-      api.post<Receipt>("/api/receipts", data),
+    mutationFn: async (data: { imageUrl: string }) => {
+      // Step 1: Upload receipt (fast — just saves image + creates placeholder expense)
+      const receipt = await api.post<Receipt>("/api/receipts", data);
+      queryClient.invalidateQueries({ queryKey: ["receipts"] });
+
+      // Step 2: Trigger OCR in background (may take 10-30s)
+      try {
+        const updated = await api.post<Receipt>(`/api/receipts/${receipt.id}/ocr`, {});
+        return updated;
+      } catch {
+        // OCR failed but receipt was still created — return the original
+        return receipt;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receipts"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
     },
   });
 }
