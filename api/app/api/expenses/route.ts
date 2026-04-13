@@ -16,7 +16,7 @@ export async function GET() {
         user: { select: { id: true, firstName: true, lastName: true, email: true } },
         receipt: { select: { id: true, imageUrl: true, status: true, extractedData: true } },
       },
-      orderBy: { date: "desc" },
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(expenses);
