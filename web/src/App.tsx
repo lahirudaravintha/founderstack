@@ -59,9 +59,31 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // User already has a company but is on onboarding page — send to dashboard
+  // User already has a company but is on onboarding page — send to appropriate page
   if (me && me.companyId && location.pathname === "/onboarding") {
-    return <Navigate to="/" replace />;
+    // Members go to receipts, admins/owners go to dashboard
+    const isAdmin = me.role === "owner" || me.role === "admin";
+    return <Navigate to={isAdmin ? "/" : "/receipts"} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Gate for admin-only routes (dashboard, capital, settings)
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { data: me, isLoading } = useMe();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  // Members and viewers cannot access admin routes — redirect to receipts
+  if (me && me.role !== "owner" && me.role !== "admin") {
+    return <Navigate to="/receipts" replace />;
   }
 
   return <>{children}</>;
@@ -91,12 +113,14 @@ function ClerkWithRoutes() {
                 </ProtectedRoute>
               } />
 
-              {/* Protected routes — require auth + company */}
-              <Route path="/" element={<ProtectedRoute><OnboardingGate><Dashboard /></OnboardingGate></ProtectedRoute>} />
-              <Route path="/capital" element={<ProtectedRoute><OnboardingGate><CapitalPage /></OnboardingGate></ProtectedRoute>} />
+              {/* Admin-only routes — owners and admins only */}
+              <Route path="/" element={<ProtectedRoute><OnboardingGate><AdminRoute><Dashboard /></AdminRoute></OnboardingGate></ProtectedRoute>} />
+              <Route path="/capital" element={<ProtectedRoute><OnboardingGate><AdminRoute><CapitalPage /></AdminRoute></OnboardingGate></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><OnboardingGate><AdminRoute><SettingsPage /></AdminRoute></OnboardingGate></ProtectedRoute>} />
+
+              {/* All authenticated users can access these */}
               <Route path="/expenses" element={<ProtectedRoute><OnboardingGate><ExpensesPage /></OnboardingGate></ProtectedRoute>} />
               <Route path="/receipts" element={<ProtectedRoute><OnboardingGate><ReceiptsPage /></OnboardingGate></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><OnboardingGate><SettingsPage /></OnboardingGate></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

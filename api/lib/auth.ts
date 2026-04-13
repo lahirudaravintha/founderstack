@@ -16,13 +16,12 @@ export async function requireAuth(): Promise<User> {
   });
 
   // Auto-create user in DB if they exist in Clerk but not in our database
-  // This handles the case where the webhook hasn't fired yet
   if (!user) {
     const clerk = await clerkClient();
     const clerkUser = await clerk.users.getUser(clerkId);
+    const email = clerkUser.emailAddresses[0]?.emailAddress;
 
     // Check if there's a pending invitation for this email
-    const email = clerkUser.emailAddresses[0]?.emailAddress;
     const invitation = email
       ? await prisma.invitation.findFirst({
           where: { email, status: "pending", expiresAt: { gt: new Date() } },
@@ -44,6 +43,31 @@ export async function requireAuth(): Promise<User> {
 
     // Mark invitation as accepted
     if (invitation) {
+      await prisma.invitation.update({
+        where: { id: invitation.id },
+        data: { status: "accepted" },
+      });
+    }
+  }
+
+  // If user exists but has no company, check again for pending invitations
+  // This handles the case where the user was created before the invitation was sent,
+  // or a previous invite attempt failed
+  if (!user.companyId) {
+    const invitation = await prisma.invitation.findFirst({
+      where: { email: user.email, status: "pending", expiresAt: { gt: new Date() } },
+    });
+
+    if (invitation) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          companyId: invitation.companyId,
+          role: invitation.role,
+        },
+        include: { moduleAccess: true },
+      });
+
       await prisma.invitation.update({
         where: { id: invitation.id },
         data: { status: "accepted" },

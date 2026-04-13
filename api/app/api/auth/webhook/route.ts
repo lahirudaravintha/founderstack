@@ -58,34 +58,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Check if there's a pending invitation for this email
-    const invitation = await prisma.invitation.findFirst({
-      where: {
-        email,
-        status: "pending",
-        expiresAt: { gt: new Date() },
-      },
-    });
-
-    await prisma.user.create({
-      data: {
-        clerkId,
-        email,
-        firstName: first_name || "",
-        lastName: last_name || "",
-        avatarUrl: image_url,
-        // If invited, join the company with the invited role
-        companyId: invitation?.companyId ?? null,
-        role: invitation?.role ?? "member",
-      },
-    });
-
-    // Mark invitation as accepted
-    if (invitation) {
-      await prisma.invitation.update({
-        where: { id: invitation.id },
-        data: { status: "accepted" },
+    try {
+      // Check if there's a pending invitation for this email
+      const invitation = await prisma.invitation.findFirst({
+        where: {
+          email,
+          status: "pending",
+          expiresAt: { gt: new Date() },
+        },
       });
+
+      // Use upsert to handle race condition with requireAuth()
+      await prisma.user.upsert({
+        where: { clerkId },
+        create: {
+          clerkId,
+          email,
+          firstName: first_name || "",
+          lastName: last_name || "",
+          avatarUrl: image_url,
+          companyId: invitation?.companyId ?? null,
+          role: invitation?.role ?? "member",
+        },
+        update: {
+          // If user was already created by requireAuth() without a company,
+          // update them with the invitation data
+          ...(invitation
+            ? {
+                companyId: invitation.companyId,
+                role: invitation.role,
+              }
+            : {}),
+        },
+      });
+
+      // Mark invitation as accepted
+      if (invitation) {
+        await prisma.invitation.update({
+          where: { id: invitation.id },
+          data: { status: "accepted" },
+        });
+      }
+    } catch (err) {
+      console.error("Webhook user.created error:", err);
     }
   }
 
