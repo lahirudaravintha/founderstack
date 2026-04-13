@@ -217,7 +217,7 @@ export function ReceiptViewer({ receipt, onClose, onSaveAsContribution, onSaveMa
                 <p className="text-xs text-muted-foreground font-medium">Amount</p>
                 <p className="text-2xl font-bold font-mono mt-1">
                   {receipt.extractedData.totalAmount
-                    ? formatCurrency(receipt.extractedData.totalAmount / 100, receipt.extractedData.currency || "USD")
+                    ? formatCurrency(receipt.extractedData.totalAmount / 100, receipt.extractedData.currency || baseCurrency)
                     : "—"}
                 </p>
               </div>

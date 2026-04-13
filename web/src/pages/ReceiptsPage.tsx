@@ -5,9 +5,12 @@ import { ReceiptViewer } from "@/components/ReceiptViewer";
 import { CheckCircle, AlertTriangle, Clock, Paperclip, ZoomIn, FileText, XCircle } from "lucide-react";
 import { useState } from "react";
 import { formatCurrency } from "@/lib/mock-data";
+import { useMe } from "@/hooks/useMe";
 import { toast } from "sonner";
 
 export default function ReceiptsPage() {
+  const { data: me } = useMe();
+  const baseCurrency = me?.company?.currency || "USD";
   const [viewReceiptId, setViewReceiptId] = useState<string | null>(null);
   const { data: receipts = [], isLoading } = useReceipts();
   const updateReceipt = useUpdateReceipt();
@@ -65,7 +68,7 @@ export default function ReceiptsPage() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {receipt.extractedData?.totalAmount
-                        ? formatCurrency(receipt.extractedData.totalAmount / 100, receipt.extractedData.currency || "USD")
+                        ? formatCurrency(receipt.extractedData.totalAmount / 100, receipt.extractedData.currency || baseCurrency)
                         : "—"}{" "}
                       · {new Date(receipt.createdAt).toLocaleDateString()}
                     </p>

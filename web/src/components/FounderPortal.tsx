@@ -390,7 +390,7 @@ export function FounderPortal() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {r.extractedData?.totalAmount
-                        ? formatCurrency(r.extractedData.totalAmount / 100)
+                        ? formatCurrency(r.extractedData.totalAmount / 100, r.extractedData.currency || baseCurrency)
                         : (r.status === "failed" ? "Tap to enter details" : "Analyzing...")}{" "}
                       · {new Date(r.createdAt).toLocaleDateString()}
                     </p>
