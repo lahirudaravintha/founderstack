@@ -43,8 +43,12 @@ type UpdateExpenseInput = {
   id: string;
   description?: string;
   amount?: number;
+  currency?: string;
+  category?: string;
+  date?: string;
   status?: "pending" | "approved" | "rejected" | "reimbursed";
   reimbursementFile?: string;
+  notes?: string;
 };
 
 export function useExpenses() {

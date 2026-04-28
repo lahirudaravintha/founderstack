@@ -13,7 +13,7 @@ import {
 import { contributionCategories, formatCurrency } from "@/lib/mock-data";
 import { CurrencySelect } from "@/components/CurrencySelect";
 import { useMe } from "@/hooks/useMe";
-import { X, CheckCircle, AlertTriangle, Paperclip, FileText, XCircle } from "lucide-react";
+import { X, CheckCircle, AlertTriangle, Paperclip, FileText, XCircle, Pencil } from "lucide-react";
 
 type ReceiptData = {
   id: string;
@@ -52,22 +52,43 @@ type ReceiptViewerProps = {
     category: string;
     description: string;
   }) => Promise<void>;
+  /** Admin-only: correct OCR-extracted fields without rejecting the receipt. */
+  onSaveOcrEdits?: (data: {
+    vendor: string;
+    amount: string;
+    currency: string;
+    date: string;
+    category: string;
+  }) => Promise<void>;
   saving?: boolean;
 };
 
 const expenseCategories = ["Software", "Hardware", "Travel", "Office", "Marketing", "Food", "Transport", "Utilities", "Professional Services", "Other"];
 
-export function ReceiptViewer({ receipt, onClose, onSaveAsContribution, onSaveManualExpense, saving }: ReceiptViewerProps) {
+export function ReceiptViewer({ receipt, onClose, onSaveAsContribution, onSaveManualExpense, onSaveOcrEdits, saving }: ReceiptViewerProps) {
   const { data: me } = useMe();
   const baseCurrency = me?.company?.currency || "USD";
+  const isAdmin = me?.role === "owner" || me?.role === "admin";
+  const canCorrectOcr = isAdmin && Boolean(onSaveOcrEdits);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [showOcrEditForm, setShowOcrEditForm] = useState(false);
   const [vendor, setVendor] = useState(receipt.extractedData?.vendorName || "");
   const [amount, setAmount] = useState(receipt.extractedData?.totalAmount ? String(receipt.extractedData.totalAmount / 100) : "");
   const [currency, setCurrency] = useState(receipt.extractedData?.currency || baseCurrency);
   const [date, setDate] = useState(receipt.extractedData?.date || new Date().toISOString().split("T")[0]);
   const [category, setCategory] = useState(receipt.extractedData?.category || "");
   const [description, setDescription] = useState("");
+
+  const handleStartOcrEdit = () => {
+    // Reset form to current OCR values
+    setVendor(receipt.extractedData?.vendorName || "");
+    setAmount(receipt.extractedData?.totalAmount ? String(receipt.extractedData.totalAmount / 100) : "");
+    setCurrency(receipt.extractedData?.currency || baseCurrency);
+    setDate(receipt.extractedData?.date || new Date().toISOString().split("T")[0]);
+    setCategory(receipt.extractedData?.category || "");
+    setShowOcrEditForm(true);
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
@@ -207,8 +228,19 @@ export function ReceiptViewer({ receipt, onClose, onSaveAsContribution, onSaveMa
           )}
 
           {/* Summary view (for successfully extracted data) */}
-          {receipt.extractedData && receipt.status !== "failed" && !showEditForm && !showManualForm && (
+          {receipt.extractedData && receipt.status !== "failed" && !showEditForm && !showManualForm && !showOcrEditForm && (
             <div className="p-6 space-y-4 flex-1">
+              {canCorrectOcr && (
+                <div className="flex justify-end -mb-2">
+                  <button
+                    onClick={handleStartOcrEdit}
+                    className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-border hover:bg-accent transition-colors"
+                    title="Correct OCR-extracted fields"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
+              )}
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Vendor</p>
                 <p className="text-sm font-semibold mt-1">{receipt.extractedData.vendorName || "Unknown"}</p>
@@ -243,6 +275,57 @@ export function ReceiptViewer({ receipt, onClose, onSaveAsContribution, onSaveMa
                   </Button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* OCR correction form (admin) */}
+          {showOcrEditForm && onSaveOcrEdits && (
+            <div className="p-6 space-y-4 flex-1">
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 mb-2">
+                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">Correct any OCR mistakes — your edits update both the receipt and the linked expense.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Vendor / Merchant</Label>
+                <Input value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="e.g. Amazon, Uber, Starbucks" />
+              </div>
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input type="number" step="0.01" className="pl-7 font-mono" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                  </div>
+                  <CurrencySelect value={currency} onValueChange={setCurrency} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {expenseCategories.map((c) => (
+                      <SelectItem key={c} value={c.toLowerCase().replace(/ /g, "_")}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button variant="ghost" className="flex-1" onClick={() => setShowOcrEditForm(false)} disabled={saving}>Cancel</Button>
+                <Button
+                  className="flex-1"
+                  disabled={saving || !vendor || !amount}
+                  onClick={async () => {
+                    await onSaveOcrEdits({ vendor, amount, currency, date, category: category || "other" });
+                    setShowOcrEditForm(false);
+                  }}
+                >
+                  {saving ? "Saving..." : "Save corrections"}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -288,12 +371,14 @@ export function ReceiptViewer({ receipt, onClose, onSaveAsContribution, onSaveMa
           )}
 
           {/* No data (non-failed, just missing extraction) */}
-          {!receipt.extractedData && receipt.status !== "failed" && !showEditForm && !showManualForm && (
+          {!receipt.extractedData && receipt.status !== "failed" && !showEditForm && !showManualForm && !showOcrEditForm && (
             <div className="p-6 flex-1 flex flex-col items-center justify-center text-center">
               <p className="text-sm text-muted-foreground mb-4">No data was extracted from this receipt.</p>
-              {onSaveAsContribution && (
+              {onSaveAsContribution ? (
                 <Button onClick={() => setShowEditForm(true)}>Enter Details Manually</Button>
-              )}
+              ) : canCorrectOcr ? (
+                <Button onClick={handleStartOcrEdit}>Enter Details Manually</Button>
+              ) : null}
             </div>
           )}
         </div>

@@ -333,6 +333,9 @@ export default function ExpensesPage() {
           onClose={() => setSelectedExpenseId(null)}
           onUpdateStatus={handleUpdateStatus}
           onReimburse={handleReimburse}
+          onSaveEdits={async (id, edits) => {
+            await updateMutation.mutateAsync({ id, ...edits });
+          }}
           convertedAmount={convertToBase(selectedExpense.amount, selectedExpense.currency, baseCurrency, rates)}
           baseCurrency={baseCurrency}
         />

@@ -89,6 +89,37 @@ export default function ReceiptsPage() {
         <ReceiptViewer
           receipt={viewingReceipt}
           onClose={() => setViewReceiptId(null)}
+          onSaveOcrEdits={async (data) => {
+            if (!data.vendor || !data.amount) {
+              toast.error("Please fill in vendor and amount");
+              return;
+            }
+            try {
+              const amountCents = Math.round(parseFloat(data.amount) * 100);
+              await updateReceipt.mutateAsync({
+                id: viewingReceipt.id,
+                status: "reviewed",
+                extractedData: {
+                  ...(viewingReceipt.extractedData || {}),
+                  vendorName: data.vendor,
+                  totalAmount: amountCents,
+                  currency: data.currency,
+                  date: data.date,
+                  category: data.category,
+                },
+                expenseData: {
+                  description: data.vendor,
+                  amount: amountCents,
+                  currency: data.currency,
+                  category: data.category,
+                  date: new Date(data.date).toISOString(),
+                },
+              } as any);
+              toast.success("Receipt corrections saved");
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed to save");
+            }
+          }}
           onSaveManualExpense={viewingReceipt.status === "failed" ? async (data) => {
             if (!data.vendor || !data.amount) {
               toast.error("Please fill in vendor and amount");
