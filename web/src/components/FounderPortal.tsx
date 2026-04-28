@@ -152,13 +152,15 @@ export function FounderPortal() {
     setCurrencyInitialized(true);
   }
 
-  const { data: contributions = [] } = useCapitalContributions();
-  const { data: receipts = [] } = useReceipts();
+  const { data: allContributions = [] } = useCapitalContributions();
+  const { data: allReceipts = [] } = useReceipts();
   const createContribution = useCreateContribution();
   const createReceipt = useCreateReceipt();
   const updateReceipt = useUpdateReceipt();
+  // Founder portal: only show the signed-in user's own data
+  const myContributions = me ? allContributions.filter((c) => c.contributorId === me.id) : [];
+  const receipts = me ? allReceipts.filter((r) => r.uploadedById === me.id) : [];
   const viewingReceipt = receipts.find((r) => r.id === viewReceiptId);
-  const myContributions = contributions;
   const myTotal = myContributions.reduce((s, c) => s + c.amount, 0);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,7 +244,7 @@ export function FounderPortal() {
               </div>
               <p className="text-sm text-muted-foreground font-medium">My Total Contributions</p>
             </div>
-            <p className="text-3xl font-bold font-mono">{formatCurrency(myTotal / 100)}</p>
+            <p className="text-2xl xl:text-3xl font-bold font-mono tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">{formatCurrency(myTotal / 100, baseCurrency)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -439,7 +441,7 @@ export function FounderPortal() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold font-mono">{formatCurrency(c.amount / 100)}</p>
+                  <p className="text-sm font-semibold font-mono">{formatCurrency(c.amount / 100, c.currency || baseCurrency)}</p>
                   {c.receiptId && (
                     <span className="text-[10px] text-primary font-medium">📎 Receipt</span>
                   )}
