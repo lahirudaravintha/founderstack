@@ -16,8 +16,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   Legend,
 } from "recharts";
 import { DollarSign, TrendingUp, TrendingDown, Users, CalendarIcon, AlertCircle, Eye, Paperclip } from "lucide-react";
@@ -96,7 +94,7 @@ export default function Dashboard() {
     }, {} as Record<string, { name: string; Contributed: number; Reimbursed: number }>)
   );
 
-  // Timeline of capital + expenses (cumulative, converted to base currency)
+  // Timeline of capital + expenses (per-event amounts on the day they occurred)
   const timelineData = (() => {
     const byDate: Record<string, { date: string; Capital: number; Expenses: number }> = {};
     contributions.forEach((c) => {
@@ -109,14 +107,7 @@ export default function Dashboard() {
       if (!byDate[key]) byDate[key] = { date: key, Capital: 0, Expenses: 0 };
       byDate[key].Expenses += convertToBase(e.amount, e.currency, baseCurrency, rates);
     });
-    const sorted = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
-    let capCum = 0;
-    let expCum = 0;
-    return sorted.map((d) => {
-      capCum += d.Capital;
-      expCum += d.Expenses;
-      return { date: d.date, Capital: capCum, Expenses: expCum };
-    });
+    return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
   })();
 
   const [activePreset, setActivePreset] = useState('All time');
@@ -385,9 +376,9 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-6">
               <h2 className="text-base font-semibold mb-4">Transaction Timeline</h2>
-              <p className="text-xs text-muted-foreground mb-4">Cumulative capital and approved expenses over time, in {baseCurrency}.</p>
+              <p className="text-xs text-muted-foreground mb-4">Capital injections and approved expenses on the day they occurred, in {baseCurrency}.</p>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={timelineData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+                <BarChart data={timelineData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }} barGap={2}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                   <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => format(new Date(v), 'MMM d')} />
                   <YAxis tickFormatter={(v) => formatCurrency(v / 100, baseCurrency)} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} axisLine={false} tickLine={false} width={90} />
@@ -395,11 +386,12 @@ export default function Dashboard() {
                     formatter={(value: number) => formatCurrency(value / 100, baseCurrency)}
                     labelFormatter={(label) => format(new Date(label), 'PP')}
                     contentStyle={{ background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
+                    cursor={{ fill: 'hsl(var(--muted) / 0.4)' }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="Capital" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="Expenses" stroke="hsl(0 72% 55%)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                </LineChart>
+                  <Bar dataKey="Capital" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Expenses" fill="hsl(0 72% 55%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
