@@ -420,6 +420,9 @@ export default function Dashboard() {
           onClose={() => setSelectedExpenseId(null)}
           onUpdateStatus={handleUpdateStatus}
           onReimburse={handleReimburse}
+          onSaveEdits={async (id, edits) => {
+            await updateExpense.mutateAsync({ id, ...edits });
+          }}
           convertedAmount={convertToBase(selectedExpense.amount, selectedExpense.currency, baseCurrency, rates)}
           baseCurrency={baseCurrency}
         />
