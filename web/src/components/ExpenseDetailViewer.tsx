@@ -139,7 +139,7 @@ export function ExpenseDetailViewer({
         amount: Math.round(editForm.amount * 100), // back to cents for API
         currency: editForm.currency,
         category: editForm.category,
-        date: editForm.date,
+        date: new Date(editForm.date).toISOString(), // full ISO datetime for Zod
       });
       setIsEditing(false);
     } catch (err) {
