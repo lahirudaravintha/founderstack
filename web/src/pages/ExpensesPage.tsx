@@ -315,7 +315,7 @@ export default function ExpensesPage() {
                       <span className={cn("flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium capitalize", statusStyle[expense.status])}>
                         <SIcon className="w-3 h-3" />{expense.status}
                       </span>
-                      <p className="text-sm font-semibold font-mono w-24 text-right">{formatCurrency(expense.amount / 100)}</p>
+                      <p className="text-sm font-semibold font-mono w-24 text-right">{formatCurrency(expense.amount / 100, expense.currency)}</p>
                     </div>
                   </div>
                 );
