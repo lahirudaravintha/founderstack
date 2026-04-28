@@ -311,7 +311,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">Total Capital</p>
               </div>
-              <p className="text-3xl font-bold font-mono">{isLoading ? "..." : formatCurrency(totalCapital / 100, baseCurrency)}</p>
+              <p className="text-2xl xl:text-3xl font-bold font-mono tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">{isLoading ? "..." : formatCurrency(totalCapital / 100, baseCurrency)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -322,7 +322,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">Total Expenses</p>
               </div>
-              <p className="text-3xl font-bold font-mono">{expensesLoading ? "..." : formatCurrency(totalExpenses / 100, baseCurrency)}</p>
+              <p className="text-2xl xl:text-3xl font-bold font-mono tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">{expensesLoading ? "..." : formatCurrency(totalExpenses / 100, baseCurrency)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -333,7 +333,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">This Month</p>
               </div>
-              <p className="text-3xl font-bold font-mono">{isLoading ? "..." : formatCurrency((thisMonthCapital - thisMonthExpenses) / 100, baseCurrency)}</p>
+              <p className="text-2xl xl:text-3xl font-bold font-mono tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">{isLoading ? "..." : formatCurrency((thisMonthCapital - thisMonthExpenses) / 100, baseCurrency)}</p>
               {thisMonthExpenses > 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
                   +{formatCurrency(thisMonthCapital / 100, baseCurrency)} capital · -{formatCurrency(thisMonthExpenses / 100, baseCurrency)} expenses
@@ -349,7 +349,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">Contributors</p>
               </div>
-              <p className="text-3xl font-bold">{isLoading ? "..." : contributorCount} <span className="text-lg font-medium text-muted-foreground">founders</span></p>
+              <p className="text-2xl xl:text-3xl font-bold tracking-tight">{isLoading ? "..." : contributorCount} <span className="text-lg font-medium text-muted-foreground">founders</span></p>
             </CardContent>
           </Card>
         </div>
