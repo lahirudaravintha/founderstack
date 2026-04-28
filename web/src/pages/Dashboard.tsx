@@ -107,8 +107,14 @@ export default function Dashboard() {
       if (!byDate[key]) byDate[key] = { date: key, Capital: 0, Expenses: 0 };
       byDate[key].Expenses += convertToBase(e.amount, e.currency, baseCurrency, rates);
     });
-    return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+    return Object.values(byDate)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((d) => ({ ...d, ts: new Date(d.date).getTime() }));
   })();
+
+  const timelineDomain: [number, number] | undefined = timelineData.length
+    ? [timelineData[0].ts, timelineData[timelineData.length - 1].ts]
+    : undefined;
 
   const [activePreset, setActivePreset] = useState('All time');
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
@@ -378,9 +384,18 @@ export default function Dashboard() {
               <h2 className="text-base font-semibold mb-4">Transaction Timeline</h2>
               <p className="text-xs text-muted-foreground mb-4">Capital injections and approved expenses on the day they occurred, in {baseCurrency}.</p>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={timelineData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }} barGap={2}>
+                <BarChart data={timelineData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }} barGap={2} barSize={14}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => format(new Date(v), 'MMM d')} />
+                  <XAxis
+                    dataKey="ts"
+                    type="number"
+                    scale="time"
+                    domain={timelineDomain}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => format(new Date(v), 'MMM d')}
+                  />
                   <YAxis tickFormatter={(v) => formatCurrency(v / 100, baseCurrency)} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} axisLine={false} tickLine={false} width={90} />
                   <Tooltip
                     formatter={(value: number) => formatCurrency(value / 100, baseCurrency)}
