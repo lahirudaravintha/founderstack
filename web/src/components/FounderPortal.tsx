@@ -7,6 +7,7 @@ import {
 } from "@/lib/mock-data";
 import { useCapitalContributions, useCreateContribution } from "@/hooks/useCapital";
 import { useReceipts, useCreateReceipt } from "@/hooks/useReceipts";
+import { useExpenses } from "@/hooks/useExpenses";
 import { Upload, Plus, DollarSign, FileText, Camera, X, SwitchCamera, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -154,12 +155,14 @@ export function FounderPortal() {
 
   const { data: allContributions = [] } = useCapitalContributions();
   const { data: allReceipts = [] } = useReceipts();
+  const { data: allExpenses = [] } = useExpenses();
   const createContribution = useCreateContribution();
   const createReceipt = useCreateReceipt();
   const updateReceipt = useUpdateReceipt();
   // Founder portal: only show the signed-in user's own data
   const myContributions = me ? allContributions.filter((c) => c.contributorId === me.id) : [];
   const receipts = me ? allReceipts.filter((r) => r.uploadedById === me.id) : [];
+  const myExpenses = me ? allExpenses.filter((e) => e.userId === me.id) : [];
   const viewingReceipt = receipts.find((r) => r.id === viewReceiptId);
   const myTotal = myContributions.reduce((s, c) => s + c.amount, 0);
 
@@ -448,6 +451,41 @@ export function FounderPortal() {
                 </div>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* My Expenses History */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-base font-semibold mb-4">My Expenses</h3>
+          <div className="space-y-3">
+            {myExpenses.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No expenses yet</p>
+            ) : myExpenses.map((e) => {
+              const statusColor = e.status === "approved" || e.status === "reimbursed"
+                ? "bg-green-500/10 text-green-600"
+                : e.status === "rejected"
+                ? "bg-red-500/10 text-red-600"
+                : "bg-amber-500/10 text-amber-600";
+              return (
+                <div key={e.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+                      <DollarSign className="w-4 h-4 text-red-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{e.description}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{e.category.replace(/_/g, ' ')} · {new Date(e.date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <p className="text-sm font-semibold font-mono">{formatCurrency(e.amount / 100, e.currency || baseCurrency)}</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${statusColor}`}>{e.status}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
