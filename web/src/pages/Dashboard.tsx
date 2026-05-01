@@ -88,10 +88,19 @@ export default function Dashboard() {
     }, 0);
 
   // Build chart data from contributions (converted to base currency)
-  const displayName = (u?: { firstName?: string; lastName?: string; email?: string }) => {
-    if (!u) return "Unknown";
-    const full = `${u.firstName || ""} ${u.lastName || ""}`.trim();
-    return full || u.email || "Unknown";
+  const displayName = (u?: { id?: string; firstName?: string | null; lastName?: string | null; email?: string | null } | null) => {
+    const meName = `${me?.firstName || ""} ${me?.lastName || ""}`.trim() || me?.email;
+    if (!u) {
+      // Fall back to current user's name if there's no contributor object at all
+      return meName || "Unknown";
+    }
+    const first = u.firstName ?? "";
+    const last = u.lastName ?? "";
+    const full = `${first} ${last}`.trim();
+    if (full) return full;
+    if (u.email) return u.email;
+    if (u.id && me?.id && u.id === me.id) return meName || "You";
+    return "You";
   };
 
   const contribReimbData = Object.values(
