@@ -17,6 +17,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import { DollarSign, TrendingUp, TrendingDown, Users, CalendarIcon, AlertCircle, Eye, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -115,6 +118,35 @@ export default function Dashboard() {
   const timelineDomain: [number, number] | undefined = timelineData.length
     ? [timelineData[0].ts, timelineData[timelineData.length - 1].ts]
     : undefined;
+
+  // Per-person totals: capital contributed + approved expenses paid (in base currency)
+  const perPersonTotals = (() => {
+    const acc: Record<string, { name: string; capital: number; expenses: number }> = {};
+    contributions.forEach((c) => {
+      const name = c.contributor ? `${c.contributor.firstName} ${c.contributor.lastName}`.trim() : "Unknown";
+      if (!acc[name]) acc[name] = { name, capital: 0, expenses: 0 };
+      acc[name].capital += convertToBase(c.amount, c.currency || baseCurrency, baseCurrency, rates);
+    });
+    approvedExpenses.forEach((e) => {
+      const name = e.user ? `${e.user.firstName} ${e.user.lastName}`.trim() : "Unknown";
+      if (!acc[name]) acc[name] = { name, capital: 0, expenses: 0 };
+      acc[name].expenses += convertToBase(e.amount, e.currency, baseCurrency, rates);
+    });
+    return Object.values(acc)
+      .map((p) => ({ ...p, total: p.capital + p.expenses }))
+      .filter((p) => p.total > 0)
+      .sort((a, b) => b.total - a.total);
+  })();
+
+  const pieColors = [
+    "hsl(var(--primary))",
+    "hsl(210 80% 55%)",
+    "hsl(35 90% 55%)",
+    "hsl(280 65% 60%)",
+    "hsl(0 72% 55%)",
+    "hsl(160 60% 45%)",
+    "hsl(50 95% 55%)",
+  ];
 
   const [activePreset, setActivePreset] = useState('All time');
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
@@ -407,6 +439,48 @@ export default function Dashboard() {
                   <Bar dataKey="Capital" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Expenses" fill="hsl(0 72% 55%)" radius={[4, 4, 0, 0]} />
                 </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Capital + Expenses share by person */}
+        {perPersonTotals.length > 0 && (
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-base font-semibold mb-1">Spend by Person</h2>
+              <p className="text-xs text-muted-foreground mb-4">Combined capital contributed and approved expenses paid, in {baseCurrency}.</p>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={perPersonTotals}
+                    dataKey="total"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={110}
+                    innerRadius={60}
+                    paddingAngle={2}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {perPersonTotals.map((_, i) => (
+                      <Cell key={i} fill={pieColors[i % pieColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number, _n: string, p: { payload?: { capital?: number; expenses?: number } }) => {
+                      const cap = p.payload?.capital || 0;
+                      const exp = p.payload?.expenses || 0;
+                      return [
+                        `${formatCurrency(value / 100, baseCurrency)} (capital ${formatCurrency(cap / 100, baseCurrency)} · expenses ${formatCurrency(exp / 100, baseCurrency)})`,
+                        "Total",
+                      ];
+                    }}
+                    contentStyle={{ background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
