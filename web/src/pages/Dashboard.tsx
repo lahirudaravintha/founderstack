@@ -88,9 +88,15 @@ export default function Dashboard() {
     }, 0);
 
   // Build chart data from contributions (converted to base currency)
+  const displayName = (u?: { firstName?: string; lastName?: string; email?: string }) => {
+    if (!u) return "Unknown";
+    const full = `${u.firstName || ""} ${u.lastName || ""}`.trim();
+    return full || u.email || "Unknown";
+  };
+
   const contribReimbData = Object.values(
     contributions.reduce((acc, c) => {
-      const name = c.contributor ? `${c.contributor.firstName} ${c.contributor.lastName}` : "Unknown";
+      const name = displayName(c.contributor);
       if (!acc[name]) acc[name] = { name, Contributed: 0, Reimbursed: 0 };
       acc[name].Contributed += convertToBase(c.amount, c.currency || baseCurrency, baseCurrency, rates);
       return acc;
@@ -123,12 +129,12 @@ export default function Dashboard() {
   const perPersonTotals = (() => {
     const acc: Record<string, { name: string; capital: number; expenses: number }> = {};
     contributions.forEach((c) => {
-      const name = c.contributor ? `${c.contributor.firstName} ${c.contributor.lastName}`.trim() : "Unknown";
+      const name = displayName(c.contributor);
       if (!acc[name]) acc[name] = { name, capital: 0, expenses: 0 };
       acc[name].capital += convertToBase(c.amount, c.currency || baseCurrency, baseCurrency, rates);
     });
     approvedExpenses.forEach((e) => {
-      const name = e.user ? `${e.user.firstName} ${e.user.lastName}`.trim() : "Unknown";
+      const name = displayName(e.user);
       if (!acc[name]) acc[name] = { name, capital: 0, expenses: 0 };
       acc[name].expenses += convertToBase(e.amount, e.currency, baseCurrency, rates);
     });
@@ -231,7 +237,7 @@ export default function Dashboard() {
 
               <div className="space-y-2">
                 {pendingExpenses.slice(0, 5).map((expense) => {
-                  const userName = expense.user ? `${expense.user.firstName} ${expense.user.lastName}` : "Unknown";
+                  const userName = displayName(expense.user);
                   const converted = convertToBase(expense.amount, expense.currency, baseCurrency, rates);
                   const showConverted = expense.currency !== baseCurrency && rates;
 
@@ -513,7 +519,7 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground text-center py-2">No activity yet</p>
               ) : (
                 contributions.slice(0, 5).map((c) => {
-                  const name = c.contributor ? `${c.contributor.firstName} ${c.contributor.lastName}` : "Unknown";
+                  const name = displayName(c.contributor);
                   const converted = convertToBase(c.amount, c.currency || baseCurrency, baseCurrency, rates);
                   const showConverted = (c.currency || baseCurrency) !== baseCurrency && rates;
 
