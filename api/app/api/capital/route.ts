@@ -16,7 +16,10 @@ export async function GET() {
     // 3. Execute — always scoped to user's company
     const contributions = await prisma.capitalContribution.findMany({
       where: { companyId: user.companyId },
-      include: { contributor: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      include: {
+        contributor: { select: { id: true, firstName: true, lastName: true, email: true } },
+        receipt: { select: { id: true, imageUrl: true, status: true, extractedData: true } },
+      },
       orderBy: { date: "desc" },
     });
 
